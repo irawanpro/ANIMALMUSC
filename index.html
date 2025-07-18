@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tebak Hewan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Poppins:wght@400;600;700&display=swap');
+        
+        .game-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        
+        .body-font {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.6s ease-out;
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        .pulse-success {
+            animation: pulseSuccess 0.8s ease-in-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        @keyframes pulseSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); background-color: #10b981; }
+            100% { transform: scale(1); }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen body-font">
+    <div id="startScreen" class="flex items-center justify-center min-h-screen">
+        <div class="text-center bg-white rounded-3xl p-8 shadow-2xl max-w-md mx-4">
+            <div class="text-6xl mb-4">🎮</div>
+            <h1 class="game-font text-4xl text-purple-800 mb-4">Game Tebak Hewan</h1>
+            <p class="text-gray-600 mb-6">Tebak hewan dari gambar yang ditampilkan!</p>
+            <button onclick="startGame()" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                🚀 Mulai Bermain
+            </button>
+        </div>
+    </div>
+
+    <div id="gameScreen" class="hidden min-h-screen p-4">
+        <div class="flex justify-between items-center mb-6">
+            <div class="bg-white rounded-full px-6 py-3 shadow-lg">
+                <span class="text-purple-800 font-bold text-lg">Soal: <span id="questionNumber">1</span>/10</span>
+            </div>
+            <div class="bg-white rounded-full px-6 py-3 shadow-lg">
+                <span class="text-green-600 font-bold text-lg">Skor: <span id="score">0</span></span>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <div class="bg-white rounded-2xl p-6 shadow-xl max-w-2xl mx-auto">
+                <h2 class="game-font text-3xl text-purple-800 mb-6" id="questionText">HEWAN APAKAH INI?</h2>
+                
+                <div class="mb-6 bounce-in" id="animalContainer">
+                    <div class="text-9xl" id="animalImage">🐔</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4" id="optionsContainer">
+                    </div>
+            </div>
+        </div>
+
+        <div id="feedback" class="text-center mb-4 hidden">
+            <div class="bg-white rounded-xl p-4 shadow-lg max-w-md mx-auto">
+                <p class="text-xl font-bold" id="feedbackText"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="endScreen" class="hidden flex items-center justify-center min-h-screen">
+        <div class="text-center bg-white rounded-3xl p-8 shadow-2xl max-w-md mx-4">
+            <div class="text-6xl mb-4">🏆</div>
+            <h1 class="game-font text-4xl text-purple-800 mb-4">Permainan Selesai!</h1>
+            <div class="text-2xl font-bold text-green-600 mb-4">
+                Skor Akhir: <span id="finalScore">0</span>/10
+            </div>
+            <div class="text-lg text-gray-600 mb-6" id="scoreMessage"></div>
+            <button onclick="restartGame()" class="bg-gradient-to-r from-green-500 to-blue-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                🔄 Main Lagi
+            </button>
+        </div>
+    </div>
+    
+    <audio id="instructionVoice">
+        <source src="audio/instructionVoice.mp3" type="audio/mpeg">
+        Your browser does not support the audio element
+    </audio>
+    <audio id="backgroundMusic" loop>
+        <source src="audio/background_music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="correctSound">
+        <source src="audio/correct_answer.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="incorrectSound">
+        <source src="audio/incorrect_sound.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <script>
+        const animals = [
+            { emoji: '🐔', name: 'Ayam', options: ['Ayam', 'Bebek', 'Angsa', 'Burung'] },
+            { emoji: '🐄', name: 'Sapi', options: ['Sapi', 'Kerbau', 'Kambing', 'Domba'] },
+            { emoji: '🐱', name: 'Kucing', options: ['Kucing', 'Anjing', 'Kelinci', 'Hamster'] },
+            { emoji: '🐶', name: 'Anjing', options: ['Anjing', 'Kucing', 'Serigala', 'Rubah'] },
+            { emoji: '🐘', name: 'Gajah', options: ['Gajah', 'Badak', 'Kuda Nil', 'Jerapah'] },
+            { emoji: '🦁', name: 'Singa', options: ['Singa', 'Harimau', 'Macan', 'Cheetah'] },
+            { emoji: '🐸', name: 'Katak', options: ['Katak', 'Kodok', 'Salamander', 'Iguana'] },
+            { emoji: '🐧', name: 'Penguin', options: ['Penguin', 'Bebek', 'Angsa', 'Pelikan'] },
+            { emoji: '🦋', name: 'Kupu-kupu', options: ['Kupu-kupu', 'Lebah', 'Capung', 'Ngengat'] },
+            { emoji: '🐠', name: 'Ikan', options: ['Ikan', 'Lumba-lumba', 'Hiu', 'Paus'] }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let gameQuestions = [];
+
+        // Get audio elements
+        const instructionVoice = document.getElementById('instructionVoice'); // Dapatkan elemen audio instructionVoice
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const correctSound = document.getElementById('correctSound');
+        const incorrectSound = document.getElementById('incorrectSound');
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            // Play background music
+            backgroundMusic.play().catch(e => console.error("Gagal memutar musik latar:", e));
+            
+            // Shuffle questions
+            gameQuestions = shuffleArray(animals);
+            currentQuestion = 0;
+            score = 0;
+            
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQuestion >= gameQuestions.length) {
+                endGame();
+                return;
+            }
+
+            const question = gameQuestions[currentQuestion];
+            
+            // Update question number
+            document.getElementById('questionNumber').textContent = currentQuestion + 1;
+            document.getElementById('score').textContent = score;
+            
+            // Show animal image with animation
+            const animalContainer = document.getElementById('animalContainer');
+            animalContainer.classList.remove('bounce-in');
+            setTimeout(() => {
+                document.getElementById('animalImage').textContent = question.emoji;
+                animalContainer.classList.add('bounce-in');
+            }, 100);
+            
+            // Shuffle options
+            const shuffledOptions = shuffleArray(question.options);
+            
+            // Create option buttons
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            shuffledOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'bg-gradient-to-r from-blue-400 to-purple-500 text-white px-6 py-4 rounded-xl text-lg font-bold hover:from-blue-500 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg';
+                button.textContent = `${index + 1}. ${option}`;
+                button.onclick = () => checkAnswer(option);
+                optionsContainer.appendChild(button);
+            });
+            
+            // Hide feedback
+            document.getElementById('feedback').classList.add('hidden');
+        }
+
+        function checkAnswer(selectedAnswer) {
+            const question = gameQuestions[currentQuestion];
+            const isCorrect = selectedAnswer === question.name;
+            
+            // Play sound based on answer
+            if (isCorrect) {
+                correctSound.play().catch(e => console.error("Gagal memutar suara benar:", e));
+            } else {
+                incorrectSound.play().catch(e => console.error("Gagal memutar suara salah:", e));
+            }
+
+            // Show feedback
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            
+            if (isCorrect) {
+                score++;
+                feedbackText.textContent = `🎉 Ya benar itu ${question.name}!`;
+                feedbackText.className = 'text-xl font-bold text-green-600';
+                feedback.className = 'text-center mb-4 pulse-success';
+            } else {
+                feedbackText.textContent = `❌ Salah! Itu adalah ${question.name}`;
+                feedbackText.className = 'text-xl font-bold text-red-600';
+                feedback.className = 'text-center mb-4 shake';
+            }
+            
+            feedback.classList.remove('hidden');
+            
+            // Disable all buttons
+            const buttons = document.querySelectorAll('#optionsContainer button');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+            
+            // Move to next question after delay
+            setTimeout(() => {
+                currentQuestion++;
+                showQuestion();
+            }, 2000);
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+            
+            // Pause background music
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0; // Reset to start
+            
+            document.getElementById('finalScore').textContent = score;
+            
+            let message = '';
+            if (score >= 8) {
+                message = '🌟 Luar biasa! Kamu ahli hewan!';
+            } else if (score >= 6) {
+                message = '👍 Bagus sekali! Terus belajar ya!';
+            } else if (score >= 4) {
+                message = '😊 Tidak buruk! Coba lagi untuk skor lebih baik!';
+            } else {
+                message = '💪 Jangan menyerah! Coba lagi dan pasti bisa!';
+            }
+            
+            document.getElementById('scoreMessage').textContent = message;
+        }
+
+        function restartGame() {
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            // Pastikan untuk memutar ulang instruksi suara jika kembali ke layar awal
+            playInstructionVoice(); 
+        }
+
+        // Fungsi untuk memutar suara instruksi
+        function playInstructionVoice() {
+            instructionVoice.play().catch(e => console.error("Gagal memutar audio instruksi:", e));
+        }
+
+        // Panggil fungsi playInstructionVoice saat DOM selesai dimuat
+        document.addEventListener('DOMContentLoaded', playInstructionVoice);
+    </script>
+</body>
+</html>
